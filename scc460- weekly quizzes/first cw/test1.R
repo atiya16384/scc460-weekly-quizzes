@@ -1,0 +1,38 @@
+# Task 1: Read the dataset, check variable names, and print dimensions
+library(dplyr)
+library(ggplot2)
+
+# Read the dataset (assuming the dataset is downloaded and stored locally as 'accidents2014.csv')
+data <- read.csv("accidents2014.csv")
+
+# Check the names of the variables and print dimensions
+colnames(data)
+dim(data)
+
+# Task 2: Select relevant variables and filter for private cars and non-motorway roads
+data_filtered <- data %>%
+  select(-Accident.Date, -Time..24hr., -Road.Surface, -Lighting.Conditions, -Weather.Conditions) %>%
+  filter(Type.of.Vehicle == 9, X1st.Road.Class != 1)
+
+# Print the dimensions of the modified data frame
+dim(data_filtered)
+
+# Task 3: Calculate the distance from the center of Leeds using Pythagoras' theorem and reorder by distance
+# Coordinates of the centre of Leeds
+leeds_easting <- 429967
+leeds_northing <- 434260
+
+# Calculate the distance from the center of Leeds
+data_with_distance <- data_filtered %>%
+  mutate(Distance_from_Leeds = sqrt((Grid.Ref..Easting - leeds_easting)^2 + 
+                                      (Grid.Ref..Northing - leeds_northing)^2)) %>%
+  arrange(Distance_from_Leeds)
+
+# Print the bottom few rows (those farthest from Leeds)
+tail(data_with_distance)
+
+# Task 4: Create a histogram of the age of casualties
+ggplot(data_with_distance, aes(x = Age.of.Casualty)) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black") +
+  labs(x = "Casualty age", y = "No. of casualties")
+

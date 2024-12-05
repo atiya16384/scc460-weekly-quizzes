@@ -1,0 +1,102 @@
+---
+title: "Sentiment Analysis on Vaccination Tweets"
+author: '36850162'
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(stringr)
+library(syuzhet)
+```
+
+```{r}
+# Load the dataset and select the required columns
+vax_tweet <- read.csv("vax_tweet.csv") %>%
+  select(user_description, text)
+
+# View the first few rows to ensure it's loaded correctly
+print("First few rows of the loaded data:")
+head(vax_tweet)
+```
+
+```{r}
+# Clean the text column by removing mentions, newlines, and hashtags
+vax_tweet$text <- vax_tweet$text %>%
+  # Replace mentions with whitespace
+  str_replace_all("@\\S+", " ") %>%
+  # Replace newline characters with whitespace
+  str_replace_all("\\n", " ") %>%
+  # Replace hashtags with whitespace
+  str_replace_all("#", " ")
+
+# Print the cleaned text of the first 5 tweets
+print("Cleaned text of the first 5 tweets:")
+head(vax_tweet$text, 5)
+
+```
+
+```{r}
+# Calculate sentiment scores for each tweet
+vax_tweet$sentiment_score <- get_sentiment(vax_tweet$text)
+
+# Calculate and print the mean sentiment score
+mean_score <- mean(vax_tweet$sentiment_score, na.rm = TRUE)
+print(paste("Mean sentiment score of all tweets:", mean_score))
+
+# Determine if the mean score is positive or negative
+if (mean_score > 0) {
+  print("The overall sentiment is positive.")
+} else {
+  print("The overall sentiment is negative.")
+}
+
+```
+
+```{r}
+# Define the doctor pattern and add a column indicating if the user is a doctor
+doctor_pattern <- "(?i)\\b(phd|m\\.d\\.?|md)\\b"
+vax_tweet$is_doctor <- grepl(doctor_pattern, vax_tweet$user_description)
+
+# Print the number of doctors found
+num_doctors <- sum(vax_tweet$is_doctor, na.rm = TRUE)
+print(paste("Number of users identified as doctors:", num_doctors))
+
+# Print the first 5 descriptions of users who are doctors
+doctor_descriptions <- head(vax_tweet$user_description[vax_tweet$is_doctor == TRUE], 5)
+print("Descriptions of the first 5 users identified as doctors:")
+print(doctor_descriptions)
+
+```
+
+```{r}
+
+# Split data into doctor and non-doctor subsets
+doctor_tweets <- vax_tweet[vax_tweet$is_doctor == TRUE, ]
+non_doctor_tweets <- vax_tweet[vax_tweet$is_doctor == FALSE, ]
+
+# Calculate average sentiment scores for doctors and non-doctors
+avg_sentiment_doctors <- mean(doctor_tweets$sentiment_score, na.rm = TRUE)
+avg_sentiment_non_doctors <- mean(non_doctor_tweets$sentiment_score, na.rm = TRUE)
+
+# Print the average sentiment scores
+print(paste("Average sentiment score for doctors:", avg_sentiment_doctors))
+print(paste("Average sentiment score for non-doctors:", avg_sentiment_non_doctors))
+
+# Compare average sentiment scores
+if (!is.na(avg_sentiment_doctors) && !is.na(avg_sentiment_non_doctors)) {
+  if (avg_sentiment_doctors > avg_sentiment_non_doctors) {
+    print("Doctors have a higher average sentiment score than non-doctors.")
+  } else if (avg_sentiment_doctors < avg_sentiment_non_doctors) {
+    print("Non-doctors have a higher average sentiment score than doctors.")
+  } else {
+    print("Doctors and non-doctors have the same average sentiment score.")
+  }
+} else {
+  print("One or both groups have no valid sentiment scores.")
+}
+
+```
